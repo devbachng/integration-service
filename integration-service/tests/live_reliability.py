@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 import httpx
 
 SIS = "http://127.0.0.1:8001"
@@ -115,8 +116,9 @@ print("\n=== TEST: dependency-pending ordering (enrollment before user/course sy
 # synced to LMS, by calling the engine directly with a payload that
 # references brand-new external IDs that don't exist in LMS yet.
 import sys
-sys.path.insert(0, "/home/claude/project/integration-service")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app import engine, db as idb
+idb.init_db()
 
 fake_event_id = f"evt_dep_test_{int(time.time())}"
 result = engine.process_event(fake_event_id, "enrollment.created", "SIS", {

@@ -14,8 +14,9 @@ import os
 import socket
 import subprocess
 import sys
+import tempfile
 import time
-import importlib
+from pathlib import Path
 
 import httpx
 import pytest
@@ -52,12 +53,15 @@ def sis_lms_servers():
         # `rate_limited_lms_server` below.
         "RATE_LIMIT": "100000",
     })
-    sis_env = dict(env); sis_env["SQLITE_URL"] = "sqlite:////tmp/sis_test.db"
-    lms_env = dict(env); lms_env["SQLITE_URL"] = "sqlite:////tmp/lms_test.db"
+    test_db_dir = Path(tempfile.gettempdir())
+    sis_db = test_db_dir / "sis_test.db"
+    lms_db = test_db_dir / "lms_test.db"
+    sis_env = dict(env); sis_env["SQLITE_URL"] = f"sqlite:///{sis_db.as_posix()}"
+    lms_env = dict(env); lms_env["SQLITE_URL"] = f"sqlite:///{lms_db.as_posix()}"
 
-    for f in ("/tmp/sis_test.db", "/tmp/lms_test.db"):
-        if os.path.exists(f):
-            os.remove(f)
+    for db_file in (sis_db, lms_db):
+        if db_file.exists():
+            db_file.unlink()
 
     sis_proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "sis.app.main:app", "--app-dir", WORKSHOP_DIR,
@@ -81,7 +85,7 @@ def sis_lms_servers():
         lms_proc.wait(timeout=5)
 
 
-@pytest.fixture()
+@pytest.fixture
 def app_modules(sis_lms_servers, tmp_path, monkeypatch):
     """(Re)configure the Integration Service's app.* modules to point at the
     test SIS/LMS instances with a throwaway sqlite datastore, and reset
@@ -124,7 +128,7 @@ def app_modules(sis_lms_servers, tmp_path, monkeypatch):
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def sis_admin_h():
     return {"x-admin-key": ADMIN_KEY}
 
@@ -132,17 +136,18 @@ def sis_admin_h():
 RATE_LIMITED_LMS_PORT = 8103
 
 
-@pytest.fixture()
+@pytest.fixture
 def rate_limited_lms_url():
     """A dedicated LMS instance with the default (production-realistic,
     RATE_LIMIT=100/min) limit, isolated from the fast/high-limit servers
     used by every other test, so the 429/Retry-After test is both fast
     and doesn't interfere with (or get interfered with by) other tests."""
     env = dict(os.environ)
+    rate_limited_db = Path(tempfile.gettempdir()) / "lms_ratelimit_test.db"
     env.update({"CLIENT_SECRET": CLIENT_SECRET, "ADMIN_KEY": ADMIN_KEY, "JWT_SECRET": "test-secret",
-                 "SQLITE_URL": "sqlite:////tmp/lms_ratelimit_test.db"})
-    if os.path.exists("/tmp/lms_ratelimit_test.db"):
-        os.remove("/tmp/lms_ratelimit_test.db")
+                 "SQLITE_URL": f"sqlite:///{rate_limited_db.as_posix()}"})
+    if rate_limited_db.exists():
+        rate_limited_db.unlink()
     proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "lms.app.main:app", "--app-dir", WORKSHOP_DIR,
          "--host", "127.0.0.1", "--port", str(RATE_LIMITED_LMS_PORT)],

@@ -1,7 +1,7 @@
 # Đồ án kết thúc môn — Kiến trúc và Tích hợp Hệ thống
 ## Integration Service: UniSIS ↔ UniLearn LMS
 
-**Sinh viên:** Bách — MSSV 2300741 — Lớp D101A1K15 — Tenant: TEAM01
+**Sinh viên:** Nguyễn Ngọc Bách — MSSV 2300741 — Lớp D101A1K15 — Tenant: TEAM01
 
 ## Cấu trúc thư mục
 

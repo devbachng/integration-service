@@ -1,0 +1,46 @@
+=== INT-01: student.created -> LMS User ===
+SIS create_student -> 201 {'studentId': 'SVNEW95996', 'firstName': 'Test01', 'lastName': 'Nguyen', 'email': 'svnew95996@student.edu.vn', 'programCode': 'CNTT', 'cohort': 2026, 'status': 'ACTIVE', 'createdAt': '2026-09-11T03:06:36.177196', 'updatedAt': '2026-09-11T03:06:36.177198'}
+  OK  (1.1s) LMS user created for SVNEW95996
+  LMS user: {'id': 81, 'username': 'SVNEW95996', 'displayName': 'Nguyen Test01', 'emailAddress': 'svnew95996@student.edu.vn', 'userType': 'LEARNER', 'enabled': True, 'externalRef': 'SVNEW95996', 'createdAt': '2026-09-11T03:06:37.185154', 'updatedAt': '2026-09-11T03:06:37.185157'}
+
+=== INT-02: section.created -> LMS Course ===
+SIS create_section -> 201 {'sectionId': 'SEC-NEW-95997', 'courseCode': 'INT402', 'semesterCode': '2026-1', 'lecturerId': 'GV0001', 'capacity': 60, 'status': 'OPEN'}
+  OK  (2.1s) LMS course created for SEC-NEW-95997
+  LMS course: {'id': 13, 'externalCode': 'SEC-NEW-95997', 'title': 'INT402 - Kien truc va tich hop he thong', 'term': '2026-1', 'state': 'PUBLISHED', 'teacherExternalRef': 'GV0001'}
+
+=== INT-03: enrollment.created -> Membership ===
+SIS create_enrollment -> 201 {'enrollmentId': 'ENR-6FB9EF7635', 'studentId': 'SVNEW95996', 'sectionId': 'SEC-NEW-95997', 'status': 'ENROLLED'}
+  OK  (2.1s) membership SVNEW95996->SEC-NEW-95997 active
+
+=== INT-04: enrollment.dropped -> Membership removed ===
+SIS drop_enrollment -> 200 {'enrollmentId': 'ENR-6FB9EF7635', 'studentId': 'SVNEW95996', 'sectionId': 'SEC-NEW-95997', 'status': 'DROPPED'}
+  OK  (2.1s) membership SVNEW95996->SEC-NEW-95997 removed
+
+=== INT-05: student.updated (status) -> LMS user enabled/disabled ===
+  BEFORE: LMS user enabled = True
+SIS patch_student -> 200 {'studentId': 'SVNEW95996', 'firstName': 'Test01', 'lastName': 'Nguyen', 'email': 'svnew95996@student.edu.vn', 'programCode': 'CNTT', 'cohort': 2026, 'status': 'SUSPENDED', 'createdAt': '2026-09-11T03:06:36.177196', 'updatedAt': '2026-09-11T03:06:43.704347'}
+  OK  (2.1s) LMS user SVNEW95996 disabled after SUSPENDED
+  AFTER:  LMS user enabled = False
+
+=== INT-07: section.updated (lecturer change) -> Course patched ===
+  BEFORE: teacherExternalRef = GV0001
+SIS patch_section -> 200 {'sectionId': 'SEC-NEW-95997', 'courseCode': 'INT402', 'semesterCode': '2026-1', 'lecturerId': 'GV0007', 'capacity': 60, 'status': 'OPEN'}
+  OK  (2.1s) LMS course teacherExternalRef updated to GV0007
+  AFTER:  teacherExternalRef = GV0007
+
+=== INT-06: grade.published (LMS) -> SIS grade reverse sync ===
+  BEFORE: SIS grade row exists? -> False
+re-enroll -> 201
+LMS upsert_grade -> 200 {'gradeId': 1, 'courseId': 13, 'userId': 81, 'finalGrade': 85.0, 'published': False}
+LMS publish_grade -> 200 {'gradeId': 1, 'courseId': 13, 'courseExternalCode': 'SEC-NEW-95997', 'userId': 81, 'userExternalRef': 'SVNEW95996', 'finalGrade': 85.0, 'publishedAt': '2026-09-11T03:06:50.162853'}
+  OK  (2.1s) SIS grade for SVNEW95996/SEC-NEW-95997 == 8.5
+  AFTER:  SIS grade: {'studentId': 'SVNEW95996', 'sectionId': 'SEC-NEW-95997', 'finalScore': 8.5, 'letterGrade': 'A', 'source': 'LMS', 'updatedAt': '2026-09-11T03:06:51.315535'}
+
+=== INT-08: learner.at_risk (LMS) -> SIS advising alert ===
+  BEFORE: existing advising alerts for SVNEW95996 -> []
+LMS create_risk -> 201 {'riskId': 'RSK-425BFDDEF2', 'courseId': 13, 'courseExternalCode': 'SEC-NEW-95997', 'userId': 81, 'userExternalRef': 'SVNEW95996', 'completionPercent': 10.0, 'inactiveDays': 20, 'riskType': 'AT_RISK'}
+  OK  (1.1s) SIS advising alert created for SVNEW95996
+  AFTER:  SIS alert: {'alertId': 'ALT-2EB468ABBD', 'studentId': 'SVNEW95996', 'sectionId': 'SEC-NEW-95997', 'riskType': 'AT_RISK', 'details': 'completionPercent=10.0, inactiveDays=20', 'status': 'OPEN', 'createdAt': '2026-09-11T03:06:53.335077'}
+
+=== ALL INT-01..08 LIVE CHECKS PASSED ===
+student_id = SVNEW95996 | section_id = SEC-NEW-95997

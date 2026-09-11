@@ -11,6 +11,7 @@ Dự án này là tầng tích hợp trung gian (Integration Service) được x
 ## Cấu trúc thư mục
 
 ├── integration-service/   # Mã nguồn chính (FastAPI), Dockerfile, môi trường & bộ Test
+
 └── docs/                  # Tài liệu kiến trúc, spec tích hợp, sơ đồ luồng và báo cáo
 
 ## 🚀 Hướng dẫn đọc tài liệu & Kiểm tra dự án
